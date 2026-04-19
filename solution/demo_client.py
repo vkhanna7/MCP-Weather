@@ -1,4 +1,5 @@
 # solution/demo_client.py
+from __future__ import annotations
 #
 # EXERCISE SOLUTION:
 #   _pick_tool now uses regex to extract a city name directly from the
@@ -7,8 +8,13 @@
 #
 # Compare with src/demo_client.py to see what changed.
 
+import os
 import re
 import sys
+
+# Ensure this script always imports weather_data and weather_server from its
+# own directory, regardless of how it is invoked or what PYTHONPATH is set to.
+sys.path.insert(0, os.path.dirname(__file__))
 
 import weather_server  # noqa: F401  (registers tools with FastMCP)
 from weather_data import get_mock_forecast, get_mock_weather, list_cities

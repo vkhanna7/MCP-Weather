@@ -1,4 +1,5 @@
 # solution/weather_data.py
+from __future__ import annotations
 #
 # EXERCISE SOLUTIONS:
 #   1. Added Denver, Los Angeles, Boston, Phoenix to WEATHER_DB

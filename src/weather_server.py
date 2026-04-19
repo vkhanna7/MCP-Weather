@@ -16,6 +16,9 @@
 # daily forecasts from a new FORECAST_DB you create in weather_data.py.
 # ─────────────────────────────────────────────────────────────────────────────
 
+import os, sys
+sys.path.insert(0, os.path.dirname(__file__))
+
 from mcp.server.fastmcp import FastMCP
 
 from weather_data import get_mock_weather, list_cities

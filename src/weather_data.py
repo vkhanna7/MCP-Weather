@@ -1,4 +1,5 @@
 # weather_data.py
+from __future__ import annotations
 #
 # A tiny in-memory weather store so the demo runs without any API key.
 # In a real app you would replace `get_mock_weather` with a call to

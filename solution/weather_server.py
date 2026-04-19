@@ -5,6 +5,9 @@
 #
 # Compare with src/weather_server.py to see what changed.
 
+import os, sys
+sys.path.insert(0, os.path.dirname(__file__))
+
 from mcp.server.fastmcp import FastMCP
 
 from weather_data import get_mock_forecast, get_mock_weather, list_cities

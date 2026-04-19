@@ -1,4 +1,5 @@
 # demo_client.py
+from __future__ import annotations
 #
 # A mock MCP client that walks through the full tool-call lifecycle without
 # needing a real LLM or API key.
@@ -19,7 +20,10 @@
 # the question automatically, e.g. with a regex or small parsing function.
 # ─────────────────────────────────────────────────────────────────────────────
 
+import os
 import sys
+
+sys.path.insert(0, os.path.dirname(__file__))
 
 # We import the server module directly here to keep the demo self-contained.
 # In a real MCP client you would connect over stdio/HTTP and call
