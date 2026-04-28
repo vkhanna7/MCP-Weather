@@ -9,19 +9,13 @@
 #
 # The MCP Python SDK handles the protocol layer (JSON-RPC over stdio) for you.
 # Your job is only to define tools and their logic.
-#
-# ─── STUDENT EXERCISE ────────────────────────────────────────────────────────
-# After you understand get_weather, try adding a second tool called
-# get_forecast that accepts `city` and `days` (1-5) and returns a list of
-# daily forecasts from a new FORECAST_DB you create in weather_data.py.
-# ─────────────────────────────────────────────────────────────────────────────
 
 import os, sys
 sys.path.insert(0, os.path.dirname(__file__))
 
 from mcp.server.fastmcp import FastMCP
 
-from weather_data import get_mock_weather, list_cities
+from weather_data import get_mock_forecast, get_mock_weather, list_cities
 
 # ── 1. Create the server ──────────────────────────────────────────────────────
 #
@@ -47,9 +41,8 @@ mcp = FastMCP("WeatherDemo")
 def get_weather(city: str) -> dict:
     """Get the current weather for a city.
 
-    Returns temperature (°F), weather condition, and humidity for the
-    requested city. Supported cities: San Francisco, New York, Miami,
-    Chicago, Seattle, Austin.
+    Returns temperature (°F), weather condition, humidity, and wind speed
+    for the requested city.
 
     Args:
         city: The name of the city to look up (case-insensitive).
@@ -79,6 +72,28 @@ def get_weather(city: str) -> dict:
         )
 
     return weather
+
+
+# ── TODO (Exercise 1) ─────────────────────────────────────────────────────────
+#
+# Add a second tool: get_forecast
+#
+# The data layer is already ready — get_mock_forecast(city, days) is imported
+# above and returns a list of daily forecast dicts from weather_data.py.
+#
+# Your job is to expose it as an MCP tool. Use get_weather above as a template:
+#
+#   1. Add @mcp.tool() decorator
+#   2. Write the function signature: get_forecast(city: str, days: int = 3) -> list[dict]
+#   3. Write a docstring — FastMCP uses it as the tool description clients see
+#   4. Validate: raise ValueError if city is empty or days is not between 1 and 5
+#   5. Call get_mock_forecast(city, days) and raise ValueError if it returns None
+#   6. Return the result
+#
+# When you're done, run: python src/demo_client.py
+# Step 1 should print TWO tools instead of one.
+#
+# Stuck? See solution/weather_server.py for the full implementation.
 
 
 # ── Entry point ───────────────────────────────────────────────────────────────

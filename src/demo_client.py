@@ -12,13 +12,6 @@ from __future__ import annotations
 #   Step 3 — Model (or mock logic) decides a tool call is needed
 #   Step 4 — Client calls the server tool and gets structured data back
 #   Step 5 — Client composes a natural-language answer from the tool result
-#
-# ─── STUDENT EXERCISE ────────────────────────────────────────────────────────
-# The _pick_tool function below uses a very naive keyword check to decide
-# whether to call get_weather.  Real LLMs use the tool schema to make this
-# decision.  Try improving _pick_tool so it also extracts the city name from
-# the question automatically, e.g. with a regex or small parsing function.
-# ─────────────────────────────────────────────────────────────────────────────
 
 import os
 import sys
@@ -29,7 +22,7 @@ sys.path.insert(0, os.path.dirname(__file__))
 # In a real MCP client you would connect over stdio/HTTP and call
 # `client.list_tools()` and `client.call_tool(name, arguments)` instead.
 import weather_server  # noqa: F401  (registers the tools with FastMCP)
-from weather_data import get_mock_weather, list_cities
+from weather_data import get_mock_forecast, get_mock_weather, list_cities
 
 DIVIDER = "─" * 60
 
@@ -51,7 +44,7 @@ def _discover_tools() -> list[dict]:
             "name": "get_weather",
             "description": (
                 "Get the current weather for a city. "
-                "Returns temperature (°F), weather condition, and humidity."
+                "Returns temperature (°F), condition, humidity, and wind speed."
             ),
             "inputSchema": {
                 "type": "object",
@@ -63,7 +56,37 @@ def _discover_tools() -> list[dict]:
                 },
                 "required": ["city"],
             },
-        }
+        },
+        # TODO (Exercise 1 — after adding get_forecast to weather_server.py):
+        # Add the get_forecast schema here so Step 1 advertises both tools.
+        # Copy the entry above as a template and change:
+        #   - "name"        → "get_forecast"
+        #   - "description" → describe the multi-day forecast it returns
+        #   - add a second property "days" with type "integer" (not required,
+        #     default 3) alongside the existing "city" property
+        #
+        # Example schema for the new entry:
+        # {
+        #     "name": "get_forecast",
+        #     "description": (
+        #         "Get a multi-day weather forecast for a city. "
+        #         "Returns high/low temps and conditions for 1–5 days."
+        #     ),
+        #     "inputSchema": {
+        #         "type": "object",
+        #         "properties": {
+        #             "city": {
+        #                 "type": "string",
+        #                 "description": "City name (case-insensitive).",
+        #             },
+        #             "days": {
+        #                 "type": "integer",
+        #                 "description": "Number of days (1–5). Default 3.",
+        #             },
+        #         },
+        #         "required": ["city"],
+        #     },
+        # },
     ]
 
 
@@ -95,8 +118,23 @@ def _pick_tool(question: str, tools: list[dict]) -> tuple[str, dict] | None:
 
     return None
 
+    # TODO (Exercise 2): Improve _pick_tool in two ways:
+    #
+    # A) Detect forecast intent and call get_forecast instead of get_weather.
+    #    Add a forecast_keywords set (e.g. {"forecast", "week", "tomorrow",
+    #    "next", "days"}) and check it against `q`. When matched, ask the user
+    #    how many days and return ("get_forecast", {"city": ..., "days": ...}).
+    #
+    # B) Extract the city with a regex so patterns like "forecast for Denver"
+    #    work without prompting the user. Write a helper _extract_city(question)
+    #    that first scans list_cities() for a substring match, then falls back
+    #    to re.search(r"\b(?:in|for)\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*)", ...).
+    #
+    # See solution/demo_client.py → _extract_city() and _pick_tool() for the
+    # full implementation.
 
-def _call_tool(tool_name: str, arguments: dict) -> dict:
+
+def _call_tool(tool_name: str, arguments: dict) -> dict | list:
     """Execute the named tool and return the result.
 
     In a production MCP client this would be:
@@ -110,24 +148,39 @@ def _call_tool(tool_name: str, arguments: dict) -> dict:
             raise ValueError(f"No data for city: '{city}'")
         return weather
 
+    # TODO (Exercise 1): Add a branch for "get_forecast" once you have added
+    # that tool to weather_server.py. get_mock_forecast is already imported
+    # at the top of this file — call it with arguments["city"] and
+    # arguments.get("days", 3), then raise ValueError if it returns None.
+
     raise ValueError(f"Unknown tool: {tool_name}")
 
 
-def _format_answer(question: str, tool_result: dict) -> str:
+def _format_answer(question: str, tool_result: dict | list, tool_name: str = "get_weather") -> str:
     """Turn a structured tool result into a natural-language answer.
 
     In a real MCP client this step is handled by passing the tool result
     back into the model so it can write the final reply.
     """
-    city = tool_result["city"]
-    temp = tool_result["temperature_f"]
-    cond = tool_result["condition"]
-    hum = tool_result["humidity_pct"]
+    if tool_name == "get_weather":
+        city = tool_result["city"]
+        temp = tool_result["temperature_f"]
+        cond = tool_result["condition"]
+        hum  = tool_result["humidity_pct"]
+        wind = tool_result["wind_speed_mph"]
+        return (
+            f"The current weather in {city} is {temp}°F and {cond.lower()}, "
+            f"with {hum}% humidity and wind speeds of {wind} mph."
+        )
 
-    return (
-        f"The current weather in {city} is {temp}°F and {cond.lower()}, "
-        f"with {hum}% humidity."
-    )
+    # TODO (Exercise 1): Add a branch for "get_forecast".
+    # tool_result will be a list of dicts when get_forecast was called.
+    # Format each day on its own line, e.g.:
+    #   Day 1: High 89°F / Low 78°F — Sunny
+    #   Day 2: High 87°F / Low 76°F — Partly Cloudy
+    # Return the formatted string (don't print inside this function).
+
+    return str(tool_result)
 
 
 def run_demo() -> None:
@@ -182,7 +235,7 @@ def run_demo() -> None:
 
     # ── STEP 5: Compose the final answer ──────────────────────────────────────
     _banner(5, "Client composes a natural-language answer")
-    answer = _format_answer(question, result)
+    answer = _format_answer(question, result, tool_name)
     print(f'\n  Final answer: "{answer}"')
     print()
 
